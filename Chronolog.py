@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 ''' A script for logging worker statistics to be used in calculating
     manual ether payout amounts to ethermine.org pool peers. '''
 ''' Intended to be run hourly via CRON job. '''
@@ -67,33 +68,35 @@ if __name__ == '__main__':
             for peer in PEERS:
                 dbjson['peers'][peer]['cumulativeMegaHashHours'] = 0
                 dbjson['peers'][peer]['averageHashRateThisPayoutPeriod'] = 0
-        # Otherwise, update averages normally and increment nonce.
+
+        # Update averages and increment nonce.
         # TODO: Abbreviate next 11 lines
-        else:
-            dbjson['nonce'] = dbjson['nonce'] + 1
-            nonce = dbjson['nonce']
-            for peer in PEERS:
-                thisPeerWorkers = PEERWORKERS[peer]
-                thisPeerMegaHashHours = 0
-                for worker in thisPeerWorkers:
-                    # 4 requests.
-                    thisWorkerHistory = requests.get(API+MINER+'/worker/'+worker+'/history')
-                    thisWorkerMegaHashHours = thisWorkerHistory.json()['data'][0]['averageHashrate']
-                    print(worker, "averaged", thisPeerMegaHashHours / pow(10, 6), "Mh/s this hour")
-                    thisPeerMegaHashHours = thisPeerMegaHashHours + thisWorkerMegaHashHours
-                    #print(peer, "contributed", thisPeerMegaHashHours / pow(10, 6), "MegaHashHours this hour.")
-                dbjson['peers'][peer]['cumulativeMegaHashHours'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] + thisPeerMegaHashHours / pow(10, 6)
-                dbjson['peers'][peer]['averageHashRateThisPayoutPeriod'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] / nonce
+        dbjson['nonce'] = dbjson['nonce'] + 1
+        nonce = dbjson['nonce']
+        for peer in PEERS:
+            thisPeerWorkers = PEERWORKERS[peer]
+            thisPeerMegaHashHours = 0
+
+            # Request history for this peer's workers, and determine this peer's MhH for this hour.
+            for worker in thisPeerWorkers:
+                # 4 requests (4 workers).
+                thisWorkerHistory = requests.get(API+MINER+'/worker/'+worker+'/history')
+                ''' Get current hashrate instead of average hashrate. Trust ( :^( ) that peers won't game this.
+                        ethermine.org's historicalWorkerStats endpoint appears to return a complete average of the worker's hashrate,
+                        not an hourly average. This means that the average does not accurately reflect the average work submitted by
+                        a worker during the last hour. '''
+                thisWorkerMegaHashHours = thisWorkerHistory.json()['data'][0]['currentHashrate']
+                thisPeerMegaHashHours = thisPeerMegaHashHours + thisWorkerMegaHashHours
+
+            # Calculate cumulativeMegaHashHours and averageHashRateThisPayoutPeriod.
+            dbjson['peers'][peer]['cumulativeMegaHashHours'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] + thisPeerMegaHashHours / pow(10, 6)
+            dbjson['peers'][peer]['averageHashRateThisPayoutPeriod'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] / nonce
         
+    # Write modified json object to file db.json
     with open("db.json", "w") as db:
-        # Write modified json object to file db.json
         print(str(json.dumps(dbjson, indent=4)))
         db.write(str(json.dumps(dbjson, indent=4)))
 
-
-
-
-        
     ## Move CWD to ./logs
     os.chdir("logs")
 
