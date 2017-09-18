@@ -1,0 +1,18 @@
+{
+    "nonce": 9,
+    "lastPayout": 1505660571,
+    "peers": {
+        "Matthew": {
+            "averageHashRateThisPayoutPeriod": 1.8333333333333333,
+            "cumulativeMegaHashHours": 16.5
+        },
+        "Ryan": {
+            "averageHashRateThisPayoutPeriod": 61.62675480372862,
+            "cumulativeMegaHashHours": 554.6407932335576
+        },
+        "Sam": {
+            "averageHashRateThisPayoutPeriod": 1.111111111111111,
+            "cumulativeMegaHashHours": 9.999999999999998
+        }
+    }
+}
