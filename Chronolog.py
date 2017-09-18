@@ -62,8 +62,29 @@ if __name__ == '__main__':
         dbjson = json.load(db)
         recordedLastPayout = dbjson['lastPayout']
         # If ethermine.org paid out to our wallet in the last hour, reset nonce,
-        # megahash-hours and average hashrate. 
+        # megahash-hours and average hashrate. Also, create a payout log file.
         if historicalPayoutStats.json()['data'][0]['paidOn'] != recordedLastPayout:
+            os.chdir("payouts")
+
+            # Create and write a payout log for this payout period.
+            with open(logDateTime + "payout", "w") as payoutLog:
+                peerContributions = {}
+                for peer in PEERS:
+                    peerContributions[peer] = 0
+
+                for peer in PEERS:
+                    peerMhHSum = dbjson['peers'][peer]['cumulativeMegaHashHours']
+                    payoutLog.write("\n[+] " + peer + " contributed a total of " +
+                    str(peerMhHSum) + " MhH this payout period.")
+                    peerContributions[peer] = peerMhHSum
+
+                totalPeersMhH = sum(peerContributions.values())
+                payoutLog.write("\n")
+                for peer in PEERS:
+                    payoutLog.write("\n[=] " + peer + " contributed " + str(peerContributions[peer]) + \
+                    "MhH or " + str(round(peerContributions[peer]/totalPeersMhH*100, 2)) + "% of the pool MhH")
+
+            os.chdir("..")
             dbjson['lastPayout'] = historicalPayoutStats.json()['data'][0]['paidOn']
             dbjson['nonce'] = 0
             for peer in PEERS:
@@ -124,5 +145,5 @@ if __name__ == '__main__':
             prettyHistWorkerStats 
 
         logFile.write(logOut)
-    
+
     # 7 requests total.
