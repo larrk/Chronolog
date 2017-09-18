@@ -61,7 +61,8 @@ if __name__ == '__main__':
     with open("db.json", "r") as db:
         dbjson = json.load(db)
         recordedLastPayout = dbjson['lastPayout']
-        # If ethermine.org paid out to our wallet in the last hour, reset nonce, megahash-hours and average hashrate. 
+        # If ethermine.org paid out to our wallet in the last hour, reset nonce,
+        # megahash-hours and average hashrate. 
         if historicalPayoutStats.json()['data'][0]['paidOn'] != recordedLastPayout:
             dbjson['lastPayout'] = historicalPayoutStats.json()['data'][0]['paidOn']
             dbjson['nonce'] = 0
@@ -77,20 +78,29 @@ if __name__ == '__main__':
             thisPeerWorkers = PEERWORKERS[peer]
             thisPeerMegaHashHours = 0
 
-            # Request history for this peer's workers, and determine this peer's MhH for this hour.
+            # Request history for this peer's workers, 
+            # and determine this peer's MhH for this hour.
             for worker in thisPeerWorkers:
                 # 4 requests (4 workers).
                 thisWorkerHistory = requests.get(API+MINER+'/worker/'+worker+'/history')
-                ''' Get current hashrate instead of average hashrate. Trust ( :^( ) that peers won't game this.
-                        ethermine.org's historicalWorkerStats endpoint appears to return a complete average of the worker's hashrate,
-                        not an hourly average. This means that the average does not accurately reflect the average work submitted by
-                        a worker during the last hour. '''
+                ''' Get current hashrate instead of average hashrate. 
+                    Trust ( :^( ) that peers won't game this.
+                    
+                    ethermine.org's historicalWorkerStats endpoint appears to 
+                    return a complete average of the worker's hashrate, not an 
+                    hourly average. This means that the average does not 
+                    accurately reflect the average work submitted by a worker 
+                    during the last hour. '''
                 thisWorkerMegaHashHours = thisWorkerHistory.json()['data'][0]['currentHashrate']
                 thisPeerMegaHashHours = thisPeerMegaHashHours + thisWorkerMegaHashHours
 
             # Calculate cumulativeMegaHashHours and averageHashRateThisPayoutPeriod.
-            dbjson['peers'][peer]['cumulativeMegaHashHours'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] + thisPeerMegaHashHours / pow(10, 6)
-            dbjson['peers'][peer]['averageHashRateThisPayoutPeriod'] = dbjson['peers'][peer]['cumulativeMegaHashHours'] / nonce
+            dbjson['peers'][peer]['cumulativeMegaHashHours'] = \
+             dbjson['peers'][peer]['cumulativeMegaHashHours'] + \
+             thisPeerMegaHashHours / pow(10, 6)
+
+            dbjson['peers'][peer]['averageHashRateThisPayoutPeriod'] = \
+             dbjson['peers'][peer]['cumulativeMegaHashHours'] / nonce
         
     # Write modified json object to file db.json
     with open("db.json", "w") as db:
@@ -102,10 +112,17 @@ if __name__ == '__main__':
 
     # Open log file in append mode
     with open(logDateTime + '.log', "a") as logFile:
-        prettyHistMinerStats =  str(json.dumps(historicalMinerStats.json(), sort_keys=False, indent=4))
-        prettyHistWorkerStats = str(json.dumps(historicalWorkerStats.json(), sort_keys=False, indent=4))
+        prettyHistMinerStats = \
+        str(json.dumps(historicalMinerStats.json(), sort_keys=False, indent=4))
+        prettyHistWorkerStats = \
+        str(json.dumps(historicalWorkerStats.json(), sort_keys=False, indent=4))
 
-        logOut = logDateTime + "\nMINER STATS\n\n" + prettyHistMinerStats + "\n\nWORKER STATS" + prettyHistWorkerStats 
+        logOut = logDateTime + \
+            "\nMINER STATS\n\n" + \
+            prettyHistMinerStats + \
+            "\n\nWORKER STATS\n" + \
+            prettyHistWorkerStats 
+
         logFile.write(logOut)
     
     # 7 requests total.
